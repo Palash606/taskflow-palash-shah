@@ -7,7 +7,7 @@ VALUES (
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     'Test User',
     'test@example.com',
-    '$2a$12$vI8A7sz5i.Y8A7sz5i.Y8A7sz5i.Y8A7sz5i.Y8A7sz5i.Y8A7sz5i.' -- Placeholder bcrypt for 'password123'
+    '$2a$12$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdqD1Rph6idS1iPW' -- Valid BCrypt hash for 'password123'
 );
 
 -- Create a project
