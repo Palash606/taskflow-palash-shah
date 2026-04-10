@@ -1,0 +1,8 @@
+-- U1: Undo Initial Schema Setup
+
+DROP TABLE IF EXISTS tasks;
+DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS users;
+
+DROP TYPE IF EXISTS task_status;
+DROP TYPE IF EXISTS task_priority;

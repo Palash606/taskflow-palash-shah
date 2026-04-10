@@ -1,0 +1,62 @@
+package com.palash.taskflow.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+@Entity
+@Table(name = "tasks")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Task {
+
+    @Id
+    @GeneratedValue
+    @Column(name = "id", updatable = false, nullable = false)
+    private UUID id;
+
+    @Column(nullable = false)
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "task_status")
+    private TaskStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "task_priority")
+    private TaskPriority priority;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_id", nullable = false)
+    private User creator;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignee_id")
+    private User assignee;
+
+    @Column(name = "due_date")
+    private LocalDate dueDate;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private OffsetDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private OffsetDateTime updatedAt;
+}
