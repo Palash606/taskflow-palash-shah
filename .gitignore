@@ -13,6 +13,7 @@ target/
 *.jar
 *.war
 *.ear
+bin/
 
 # Logs
 *.log
@@ -34,7 +35,5 @@ yarn-error.log*
 *.swo
 .DS_Store
 
-# Backend specific
-.mvn/
-mvnw
-mvnw.cmd
+# OS generated files
+Thumbs.db
