@@ -1,0 +1,128 @@
+package com.palash.taskflow.service;
+
+import com.palash.taskflow.dto.TaskDTO;
+import com.palash.taskflow.dto.TaskRequest;
+import com.palash.taskflow.entity.Project;
+import com.palash.taskflow.entity.Task;
+import com.palash.taskflow.entity.TaskStatus;
+import com.palash.taskflow.entity.User;
+import com.palash.taskflow.repository.ProjectRepository;
+import com.palash.taskflow.repository.TaskRepository;
+import com.palash.taskflow.repository.UserRepository;
+import com.palash.taskflow.security.SecurityUtils;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class TaskService {
+
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final SecurityUtils securityUtils;
+
+    @Transactional(readOnly = true)
+    public List<TaskDTO> getTasksByProjectWithFilters(UUID projectId, TaskStatus status, UUID assigneeId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
+        
+        User assignee = null;
+        if (assigneeId != null) {
+            assignee = userRepository.findById(assigneeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignee not found"));
+        }
+
+        return taskRepository.findTasksByProjectWithFilters(project, status, assignee).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public TaskDTO createTask(UUID projectId, TaskRequest request) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
+        
+        User currentUser = securityUtils.getCurrentUser();
+        
+        User assignee = null;
+        if (request.getAssignee_id() != null) {
+            assignee = userRepository.findById(request.getAssignee_id())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignee not found"));
+        }
+
+        Task task = Task.builder()
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .status(request.getStatus() != null ? request.getStatus() : TaskStatus.todo)
+                .priority(request.getPriority())
+                .project(project)
+                .creator(currentUser)
+                .assignee(assignee)
+                .dueDate(request.getDue_date())
+                .build();
+
+        return mapToDTO(taskRepository.save(task));
+    }
+
+    @Transactional
+    public TaskDTO updateTask(UUID id, TaskRequest request) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+
+        if (request.getTitle() != null) task.setTitle(request.getTitle());
+        if (request.getDescription() != null) task.setDescription(request.getDescription());
+        if (request.getStatus() != null) task.setStatus(request.getStatus());
+        if (request.getPriority() != null) task.setPriority(request.getPriority());
+        if (request.getDue_date() != null) task.setDueDate(request.getDue_date());
+        
+        if (request.getAssignee_id() != null) {
+            User assignee = userRepository.findById(request.getAssignee_id())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignee not found"));
+            task.setAssignee(assignee);
+        }
+
+        return mapToDTO(taskRepository.save(task));
+    }
+
+    @Transactional
+    public void deleteTask(UUID id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+        
+        User currentUser = securityUtils.getCurrentUser();
+        
+        // Project owner or Task creator only
+        boolean isOwner = task.getProject().getOwner().getId().equals(currentUser.getId());
+        boolean isCreator = task.getCreator().getId().equals(currentUser.getId());
+        
+        if (!isOwner && !isCreator) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden: You do not have permission to delete this task");
+        }
+
+        taskRepository.delete(task);
+    }
+
+    private TaskDTO mapToDTO(Task task) {
+        return TaskDTO.builder()
+                .id(task.getId())
+                .title(task.getTitle())
+                .description(task.getDescription())
+                .status(task.getStatus())
+                .priority(task.getPriority())
+                .project_id(task.getProject().getId())
+                .creator_id(task.getCreator().getId())
+                .assignee_id(task.getAssignee() != null ? task.getAssignee().getId() : null)
+                .due_date(task.getDueDate())
+                .created_at(task.getCreatedAt())
+                .updated_at(task.getUpdatedAt())
+                .build();
+    }
+}
