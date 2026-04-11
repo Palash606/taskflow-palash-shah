@@ -1,19 +1,19 @@
 package com.palash.taskflow.service;
 
-import com.palash.taskflow.dto.ProjectDTO;
-import com.palash.taskflow.dto.ProjectRequest;
-import com.palash.taskflow.dto.TaskDTO;
+import com.palash.taskflow.dto.*;
 import com.palash.taskflow.entity.Project;
 import com.palash.taskflow.entity.User;
 import com.palash.taskflow.repository.ProjectRepository;
 import com.palash.taskflow.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -26,11 +26,17 @@ public class ProjectService {
     private final SecurityUtils securityUtils;
 
     @Transactional(readOnly = true)
-    public List<ProjectDTO> getAllProjects() {
+    public PaginatedResponse<ProjectDTO> getAllProjects(int page, int limit) {
         User currentUser = securityUtils.getCurrentUser();
-        return projectRepository.findProjectsForUser(currentUser).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+        Pageable pageable = PageRequest.of(page - 1, limit);
+        Page<Project> projectPage = projectRepository.findProjectsForUser(currentUser.getId(), pageable);
+
+        return PaginatedResponse.<ProjectDTO>builder()
+                .items(projectPage.getContent().stream().map(this::mapToDTO).collect(Collectors.toList()))
+                .total(projectPage.getTotalElements())
+                .page(page)
+                .limit(limit)
+                .build();
     }
 
     @Transactional
@@ -41,31 +47,22 @@ public class ProjectService {
                 .description(request.getDescription())
                 .owner(currentUser)
                 .build();
+
         return mapToDTO(projectRepository.save(project));
     }
 
     @Transactional(readOnly = true)
-    public ProjectDTO getProjectById(UUID id) {
-        Project project = projectRepository.findById(id)
+    public ProjectStatsDTO getProjectStats(UUID projectId) {
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
-        return mapToDTO(project);
-    }
 
-    @Transactional
-    public ProjectDTO updateProject(UUID id, ProjectRequest request) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
-        
-        checkOwnership(project);
+        Map<String, Long> stats = project.getTasks().stream()
+                .collect(Collectors.groupingBy(task -> task.getStatus().name(), Collectors.counting()));
 
-        if (request.getName() != null) {
-            project.setName(request.getName());
-        }
-        if (request.getDescription() != null) {
-            project.setDescription(request.getDescription());
-        }
-
-        return mapToDTO(projectRepository.save(project));
+        return ProjectStatsDTO.builder()
+                .totalTasks(project.getTasks().size())
+                .tasksByStatus(stats)
+                .build();
     }
 
     @Transactional
@@ -73,35 +70,12 @@ public class ProjectService {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
         
-        checkOwnership(project);
-        projectRepository.delete(project);
-    }
-
-    @Transactional(readOnly = true)
-    public com.palash.taskflow.dto.ProjectStatsDTO getProjectStats(UUID id) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
-        
-        // Count by status
-        Map<String, Long> tasksByStatus = project.getTasks().stream()
-                .collect(Collectors.groupingBy(task -> task.getStatus().name(), Collectors.counting()));
-        
-        // Count by assignee (use email or name as key)
-        Map<String, Long> tasksByAssignee = project.getTasks().stream()
-                .filter(task -> task.getAssignee() != null)
-                .collect(Collectors.groupingBy(task -> task.getAssignee().getName(), Collectors.counting()));
-        
-        return com.palash.taskflow.dto.ProjectStatsDTO.builder()
-                .tasksByStatus(tasksByStatus)
-                .tasksByAssignee(tasksByAssignee)
-                .build();
-    }
-
-    private void checkOwnership(Project project) {
         User currentUser = securityUtils.getCurrentUser();
         if (!project.getOwner().getId().equals(currentUser.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden: You do not own this project");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden: You are not the owner of this project");
         }
+        
+        projectRepository.delete(project);
     }
 
     private ProjectDTO mapToDTO(Project project) {
@@ -111,21 +85,6 @@ public class ProjectService {
                 .description(project.getDescription())
                 .ownerId(project.getOwner().getId())
                 .createdAt(project.getCreatedAt())
-                .tasks(project.getTasks() != null ? project.getTasks().stream()
-                        .map(task -> TaskDTO.builder()
-                                .id(task.getId())
-                                .title(task.getTitle())
-                                .description(task.getDescription())
-                                .status(task.getStatus())
-                                .priority(task.getPriority())
-                                .projectId(project.getId())
-                                .creatorId(task.getCreator().getId())
-                                .assigneeId(task.getAssignee() != null ? task.getAssignee().getId() : null)
-                                .dueDate(task.getDueDate())
-                                .createdAt(task.getCreatedAt())
-                                .updatedAt(task.getUpdatedAt())
-                                .build())
-                        .collect(Collectors.toList()) : null)
                 .build();
     }
 }

@@ -14,7 +14,7 @@
 	<name>taskflow</name>
 	<description/>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>21</java.version>
 		<lombok.version>1.18.34</lombok.version>
 	</properties>
 	<dependencies>
@@ -100,6 +100,7 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.13.0</version>
 				<configuration>
+					<parameters>true</parameters>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>

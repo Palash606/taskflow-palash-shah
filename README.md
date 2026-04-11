@@ -1,67 +1,68 @@
 # TaskFlow - Minimal Task Management System
 
-TaskFlow is a robust, relational task management system built with Java (Spring Boot) and React. It features secure authentication, project organization, and task tracking with ownership logic.
+TaskFlow is a robust, relational task management system built with Java (Spring Boot 3.3.4) and React 19. It features secure JWT authentication, project organization, and a premium Task Board with drag-and-drop capabilities.
 
 ## Repository Structure
-- `/backend`: Spring Boot 3.3.4 (Java 21), PostgreSQL, Flyway.
-- `/frontend`: React + Tailwind (Pending).
-- `docker-compose.yml`: Orchestrates the full stack.
+- `/backend`: Spring Boot 3.3.4 (Java 21), PostgreSQL 16, Flyway Migrations.
+- `/frontend`: React 19 + TypeScript + Tailwind CSS + Radix UI (shadcn).
+- `docker-compose.yml`: Orchestrates the full stack (DB, API, Web).
 
-## Getting Started
+## 🚀 Running Locally
 
-### Prerequisites
-- Docker & Docker Compose
-- Java 21 (for local development)
+The entire stack is containerized. You only need Docker installed.
 
-### One-Command Setup
-1. Clone the repo.
-2. Create a `.env` file (see `.env.example`).
-3. Run:
+1. **Clone the repository**
+2. **Setup environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+3. **Launch the stack**
    ```bash
    docker compose up --build
    ```
-The backend will be available at `http://localhost:8080`.
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8080
 
-## Architecture Decisions
+## 🗄️ Running Migrations
+Migrations are handled by **Flyway** and run **automatically** when the backend container starts. 
+- Schema: Managed in `backend/src/main/resources/db/migration`
+- Seeding: A seed script runs during the first migration to create test data.
 
-### 1. Relational Design
-- Used **PostgreSQL** for strict relational integrity.
-- **UUIDs** are used for all IDs to prevent ID enumeration and improve scalability.
-- Custom **ENUMs** for Task Status and Priority to ensure data consistency at the DB level.
+## 🔐 Test Credentials
+Use these credentials to explore the app immediately without registering:
+- **Email**: `test@example.com`
+- **Password**: `password123`
 
-### 2. Security
-- **JWT Authentication**: Stateless authentication using signed tokens.
-- **BCrypt (Cost 12)**: Maximum security for password hashing as per requirements.
-- **Ownership Logic**: Multi-tiered permission checks (e.g., only project owners can delete projects).
+## 🏗️ Architecture Decisions
 
-### 3. Production Readiness
-- **Flyway**: Manual migrations with zero `ddl-auto` in production.
-- **Structured Logging**: Logstash JSON encoder for machine-readable logs.
-- **Graceful Shutdown**: 30-second timeout for active connections.
+### 1. Relational Integrity & Type Safety
+- **PostgreSQL**: Chosen for strict relational consistency and robust ACID transactions.
+- **UUIDs**: Used everywhere to prevent ID enumeration and ensure global uniqueness.
+- **TypeScript**: Shared types/interfaces between frontend and backend contracts to ensure end-to-end type safety.
 
-## API Reference
+### 2. Performance & UX
+- **React Query**: Used for server state management, caching, and optimistic UI updates.
+- **Controlled DND**: Drag-and-drop handles are isolated to specific icons to prevent interaction conflicts with action buttons.
+- **Optimistic UI**: Moving a task between columns updates the UI instantly, with an automatic roll-back on API failure.
 
-### Authentication
-- `POST /auth/register`: Register a new user.
-- `POST /auth/login`: Get a JWT token.
+### 3. Security
+- **JWT (Stateless)**: 24-hour expiry with user identity claims.
+- **BCrypt (Cost 12)**: Industry-standard hashing for passwords.
+- **Server-Side Validation**: All inputs are validated via JSR-303 (Bean Validation) on the backend.
 
-### Projects
-- `GET /projects`: List owned or assigned projects.
-- `POST /projects`: Create a project.
-- `GET /projects/:id`: Get project + tasks.
-- `PATCH /projects/:id`: Update project (Owner only).
-- `DELETE /projects/:id`: Delete project (Owner only).
-- `GET /projects/:id/stats`: **(Bonus)** Statistics by status/assignee.
+## 🛠️ What I'd Do With More Time
+1. **Integration Testing**: Add exhaustive Playwright/Cypress E2E tests for the drag-and-drop flow.
+2. **Real-time Engine**: Implement WebSockets for live updates when multiple users are in the same project.
+3. **Advanced Filtering**: Add multi-select filters and text search across the entire project list.
+4. **Activity Logs**: Implement an auditing system to track who changed what task and when.
 
-### Tasks
-- `GET /projects/:id/tasks`: List tasks with filters (`?status=`, `?assignee=`).
-- `POST /projects/:id/tasks`: Create task.
-- `PATCH /tasks/:id`: Update task attributes.
-- `DELETE /tasks/:id`: Delete task (Owner or Creator only).
-
-## Testing
-Run integration tests locally:
-```bash
-cd backend
-./mvnw test
-```
+## 📖 API Reference
+- `POST /auth/register`: Create user
+- `POST /auth/login`: Get JWT
+- `GET /projects`: List accessible projects
+- `POST /projects`: Create project
+- `GET /projects/:id`: Get project details + tasks
+- `PATCH /projects/:id`: Update project (Owner only)
+- `DELETE /projects/:id`: Delete project (Owner only)
+- `PATCH /tasks/:id`: Update task (Title, Status, Priority)
+- `DELETE /tasks/:id`: Remove task

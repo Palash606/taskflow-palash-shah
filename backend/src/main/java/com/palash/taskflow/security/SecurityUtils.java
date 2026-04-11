@@ -23,15 +23,13 @@ public class SecurityUtils {
         
         Object principal = authentication.getPrincipal();
         String email;
-        if (principal instanceof String) {
-            email = (String) principal;
-        } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+        if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
             email = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
         } else {
             email = principal.toString();
         }
-        
+
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User session is invalid. Please login again."));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     }
 }

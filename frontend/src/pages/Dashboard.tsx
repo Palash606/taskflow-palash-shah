@@ -1,25 +1,27 @@
-import CreateProjectModal from "@/components/CreateProjectModal";
-import ProjectCard from "@/components/ProjectCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { projectApi, taskApi } from "@/lib/api";
+import CreateProjectModal from "../components/CreateProjectModal";
+import ProjectCard from "../components/ProjectCard";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { projectApi, taskApi } from "../lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { Layout, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function Dashboard() {
-  const { data: projects, isLoading: projectsLoading } = useQuery({
+  const { data: projectsPage, isLoading: projectsLoading } = useQuery({
     queryKey: ["projects"],
-    queryFn: () => projectApi.getAll().then((res) => res.data),
+    queryFn: () => projectApi.getAll(),
   });
+
+  const projects = projectsPage?.items;
 
   const { data: tasks, isLoading: tasksLoading } = useQuery({
     queryKey: ["tasks"],
-    queryFn: () => taskApi.getAll().then((res) => res.data),
+    queryFn: () => taskApi.getAll(),
   });
 
   const stats = [
     {
       title: "Total Projects",
-      value: projects?.length || 0,
+      value: projectsPage?.total || 0,
       icon: Layout,
       color: "text-blue-600",
     },
@@ -86,13 +88,13 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <Card className="flex flex-col items-center justify-center p-12 text-center bg-slate-50 border-dashed">
-            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-              <Layout className="h-6 w-6 text-slate-400" />
+          <Card className="flex flex-col items-center justify-center p-12 text-center bg-slate-900/50 border-slate-800 border-dashed backdrop-blur-md shadow-2xl shadow-slate-950/20">
+            <div className="h-16 w-16 rounded-full bg-slate-800 flex items-center justify-center mb-6 shadow-inner">
+              <Layout className="h-8 w-8 text-primary" />
             </div>
-            <h3 className="text-lg font-medium">No projects yet</h3>
-            <p className="text-sm text-slate-500 max-w-xs mb-6">
-              Get started by creating your first project to organize your tasks.
+            <h3 className="text-2xl font-black text-slate-100 tracking-tight">No projects yet</h3>
+            <p className="text-sm text-slate-400 max-w-xs mb-10 font-medium">
+              Every great journey starts with a single step. Create your first project to organize your tasks.
             </p>
             <CreateProjectModal />
           </Card>

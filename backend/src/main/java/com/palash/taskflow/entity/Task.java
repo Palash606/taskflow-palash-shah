@@ -1,23 +1,26 @@
 package com.palash.taskflow.entity;
 
+import com.palash.taskflow.entity.TaskPriority;
+import com.palash.taskflow.entity.TaskStatus;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "tasks")
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Task {
 
     @Id
@@ -33,12 +36,12 @@ public class Task {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(nullable = false, columnDefinition = "task_status")
+    @Column(nullable = false)
     private TaskStatus status;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(nullable = false, columnDefinition = "task_priority")
+    @Column(nullable = false)
     private TaskPriority priority;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -54,7 +57,7 @@ public class Task {
     private User assignee;
 
     @Column(name = "due_date")
-    private LocalDate dueDate;
+    private OffsetDateTime dueDate;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

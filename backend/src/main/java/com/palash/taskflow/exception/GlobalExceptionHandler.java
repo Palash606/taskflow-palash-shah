@@ -50,7 +50,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
         Map<String, String> body = new HashMap<>();
-        body.put("error", ex.getReason());
+        String message = ex.getReason();
+        
+        if (ex.getStatusCode() == HttpStatus.FORBIDDEN) {
+            message = "forbidden";
+        } else if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
+            message = "not found";
+        }
+        
+        body.put("error", message);
         return new ResponseEntity<>(body, ex.getStatusCode());
     }
 

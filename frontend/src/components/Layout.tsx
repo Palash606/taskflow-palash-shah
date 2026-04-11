@@ -10,9 +10,9 @@ import {
   FolderKanban,
   User as UserIcon
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "../contexts/AuthContext";
+import { cn } from "../lib/utils";
+import { Button } from "./ui/button";
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
