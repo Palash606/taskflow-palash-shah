@@ -2,6 +2,7 @@ package com.palash.taskflow.controller;
 
 import com.palash.taskflow.dto.TaskDTO;
 import com.palash.taskflow.dto.TaskRequest;
+import com.palash.taskflow.dto.TasksResponse;
 import com.palash.taskflow.entity.TaskStatus;
 import com.palash.taskflow.service.TaskService;
 import jakarta.validation.Valid;
@@ -19,13 +20,18 @@ public class TaskController {
 
     private final TaskService taskService;
 
+    @GetMapping("/tasks")
+    public ResponseEntity<TasksResponse> getAllTasks() {
+        return ResponseEntity.ok(new TasksResponse(taskService.getAllTasksForCurrentUser()));
+    }
+
     @GetMapping("/projects/{projectId}/tasks")
-    public ResponseEntity<List<TaskDTO>> getTasks(
+    public ResponseEntity<TasksResponse> getTasks(
             @PathVariable UUID projectId,
             @RequestParam(required = false) TaskStatus status,
             @RequestParam(required = false) UUID assignee
     ) {
-        return ResponseEntity.ok(taskService.getTasksByProjectWithFilters(projectId, status, assignee));
+        return ResponseEntity.ok(new TasksResponse(taskService.getTasksByProjectWithFilters(projectId, status, assignee)));
     }
 
     @PostMapping("/projects/{projectId}/tasks")

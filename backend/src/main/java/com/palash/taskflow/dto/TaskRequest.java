@@ -1,5 +1,6 @@
 package com.palash.taskflow.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palash.taskflow.entity.TaskPriority;
 import com.palash.taskflow.entity.TaskStatus;
 import jakarta.validation.constraints.NotBlank;
@@ -25,7 +26,9 @@ public class TaskRequest {
     
     private TaskPriority priority;
     
+    @JsonProperty("assignee_id")
     private UUID assignee_id;
     
+    @JsonProperty("due_date")
     private LocalDate due_date;
 }
