@@ -19,8 +19,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-<<<<<<< HEAD
-=======
 // Types
 export interface User {
   id: string;
@@ -32,9 +30,9 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  ownerId: string;
-  createdAt: string;
-  updatedAt: string;
+  owner_id: string;
+  created_at: string;
+  updated_at?: string;
 }
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
@@ -46,26 +44,28 @@ export interface Task {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  projectId: string;
-  creatorId: string;
-  assigneeId?: string;
-  dueDate?: string;
+  project_id: string;
+  creator_id: string;
+  assignee_id?: string;
+  due_date?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Project API
 export const projectApi = {
-  getAll: () => api.get<Project[]>("/projects"),
-  getById: (id: string) => api.get<Project>(`/projects/${id}`),
-  create: (data: Partial<Project>) => api.post<Project>("/projects", data),
+  getAll: () => api.get<{ projects: Project[] }>("/projects").then(res => res.data.projects),
+  getById: (id: string) => api.get<Project>(`/projects/${id}`).then(res => res.data),
+  create: (data: Partial<Project>) => api.post<Project>("/projects", data).then(res => res.data),
 };
 
 // Task API
 export const taskApi = {
-  getByProject: (projectId: string) => api.get<Task[]>(`/projects/${projectId}/tasks`),
-  create: (projectId: string, data: Partial<Task>) => api.post<Task>(`/projects/${projectId}/tasks`, data),
-  update: (id: string, data: Partial<Task>) => api.patch<Task>(`/tasks/${id}`, data),
+  getAll: () => api.get<{ tasks: Task[] }>("/tasks").then(res => res.data.tasks),
+  getByProject: (projectId: string) => api.get<{ tasks: Task[] }>(`/projects/${projectId}/tasks`).then(res => res.data.tasks),
+  create: (projectId: string, data: Partial<Task>) => api.post<Task>(`/projects/${projectId}/tasks`, data).then(res => res.data),
+  update: (id: string, data: Partial<Task>) => api.patch<Task>(`/tasks/${id}`, data).then(res => res.data),
   delete: (id: string) => api.delete(`/tasks/${id}`),
 };
 
->>>>>>> 5e65e1b8 (chore: clean up irrelevant files and add .gitignore)
 export default api;

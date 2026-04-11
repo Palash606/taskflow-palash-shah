@@ -1,5 +1,6 @@
 package com.palash.taskflow.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palash.taskflow.entity.TaskPriority;
 import com.palash.taskflow.entity.TaskStatus;
 import lombok.AllArgsConstructor;
@@ -21,10 +22,22 @@ public class TaskDTO {
     private String description;
     private TaskStatus status;
     private TaskPriority priority;
-    private UUID project_id; // Using project_id as per mock spec requirement in appendix
-    private UUID creator_id;
-    private UUID assignee_id;
-    private LocalDate due_date;
-    private OffsetDateTime created_at;
-    private OffsetDateTime updated_at;
+    
+    @JsonProperty("project_id")
+    private UUID projectId;
+    
+    @JsonProperty("creator_id")
+    private UUID creatorId;
+    
+    @JsonProperty("assignee_id")
+    private UUID assigneeId;
+    
+    @JsonProperty("due_date")
+    private LocalDate dueDate;
+    
+    @JsonProperty("created_at")
+    private OffsetDateTime createdAt;
+    
+    @JsonProperty("updated_at")
+    private OffsetDateTime updatedAt;
 }

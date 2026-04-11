@@ -30,6 +30,14 @@ public class TaskService {
     private final SecurityUtils securityUtils;
 
     @Transactional(readOnly = true)
+    public List<TaskDTO> getAllTasksForCurrentUser() {
+        User currentUser = securityUtils.getCurrentUser();
+        return taskRepository.findAllByUser(currentUser).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<TaskDTO> getTasksByProjectWithFilters(UUID projectId, TaskStatus status, UUID assigneeId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
@@ -117,12 +125,12 @@ public class TaskService {
                 .description(task.getDescription())
                 .status(task.getStatus())
                 .priority(task.getPriority())
-                .project_id(task.getProject().getId())
-                .creator_id(task.getCreator().getId())
-                .assignee_id(task.getAssignee() != null ? task.getAssignee().getId() : null)
-                .due_date(task.getDueDate())
-                .created_at(task.getCreatedAt())
-                .updated_at(task.getUpdatedAt())
+                .projectId(task.getProject().getId())
+                .creatorId(task.getCreator().getId())
+                .assigneeId(task.getAssignee() != null ? task.getAssignee().getId() : null)
+                .dueDate(task.getDueDate())
+                .createdAt(task.getCreatedAt())
+                .updatedAt(task.getUpdatedAt())
                 .build();
     }
 }

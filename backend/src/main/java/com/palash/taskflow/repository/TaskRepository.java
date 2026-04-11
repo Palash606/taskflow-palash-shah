@@ -16,11 +16,15 @@ import java.util.UUID;
 public interface TaskRepository extends JpaRepository<Task, UUID> {
     
     @Query("SELECT t FROM Task t WHERE t.project = :project " +
-           "AND (:status IS NULL OR t.status = :status) " +
-           "AND (:assignee IS NULL OR t.assignee = :assignee)")
+           "AND (cast(:status as String) IS NULL OR t.status = :status) " +
+           "AND (cast(:assignee as String) IS NULL OR t.assignee = :assignee)")
     List<Task> findTasksByProjectWithFilters(
             @Param("project") Project project,
             @Param("status") TaskStatus status,
             @Param("assignee") User assignee
     );
+
+    @Query("SELECT t FROM Task t WHERE t.project.owner = :user " +
+           "OR t.creator = :user OR t.assignee = :user")
+    List<Task> findAllByUser(@Param("user") User user);
 }

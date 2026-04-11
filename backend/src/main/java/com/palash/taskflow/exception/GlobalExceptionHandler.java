@@ -22,10 +22,21 @@ public class GlobalExceptionHandler {
             fields.put(fieldName, errorMessage);
         });
 
+        System.out.println("Validation failed: " + fields);
+
         Map<String, Object> body = new HashMap<>();
         body.put("error", "validation failed");
         body.put("fields", fields);
 
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleHttpMessageNotReadableException(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        System.err.println("JSON parse error: " + ex.getMessage());
+        Map<String, String> body = new HashMap<>();
+        body.put("error", "Invalid JSON payload format");
+        body.put("details", ex.getMessage());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
@@ -45,6 +56,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
+        System.err.println("Runtime exception: " + ex.getMessage());
+        ex.printStackTrace();
         Map<String, String> body = new HashMap<>();
         body.put("error", ex.getMessage());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
@@ -52,6 +65,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneralException(Exception ex) {
+        System.err.println("Unexpected error: " + ex.getMessage());
+        ex.printStackTrace();
         Map<String, String> body = new HashMap<>();
         body.put("error", "An unexpected error occurred");
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
