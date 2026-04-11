@@ -5,13 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
+import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProjectStatsDTO {
-    private long totalTasks;
-    private Map<String, Long> tasksByStatus;
+public class PaginatedResponse<T> {
+    private List<T> items;
+    private long total;
+    private int page;
+    private int limit;
 }

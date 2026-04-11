@@ -52,17 +52,34 @@ export interface Task {
   updated_at?: string;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ProjectStats {
+  tasksByStatus: Record<string, number>;
+  tasksByAssignee: Record<string, number>;
+}
+
 // Project API
 export const projectApi = {
-  getAll: () => api.get<{ projects: Project[] }>("/projects").then(res => res.data.projects),
+  getAll: (page = 1, limit = 10) => 
+    api.get<PaginatedResponse<Project>>(`/projects?page=${page}&limit=${limit}`).then(res => res.data),
   getById: (id: string) => api.get<Project>(`/projects/${id}`).then(res => res.data),
   create: (data: Partial<Project>) => api.post<Project>("/projects", data).then(res => res.data),
+  update: (id: string, data: Partial<Project>) => api.patch<Project>(`/projects/${id}`, data).then(res => res.data),
+  delete: (id: string) => api.delete(`/projects/${id}`),
+  getStats: (id: string) => api.get<ProjectStats>(`/projects/${id}/stats`).then(res => res.data),
 };
 
 // Task API
 export const taskApi = {
   getAll: () => api.get<{ tasks: Task[] }>("/tasks").then(res => res.data.tasks),
-  getByProject: (projectId: string) => api.get<{ tasks: Task[] }>(`/projects/${projectId}/tasks`).then(res => res.data.tasks),
+  getByProject: (projectId: string, page = 1, limit = 100) => 
+    api.get<PaginatedResponse<Task>>(`/projects/${projectId}/tasks?page=${page}&limit=${limit}`).then(res => res.data),
   create: (projectId: string, data: Partial<Task>) => api.post<Task>(`/projects/${projectId}/tasks`, data).then(res => res.data),
   update: (id: string, data: Partial<Task>) => api.patch<Task>(`/tasks/${id}`, data).then(res => res.data),
   delete: (id: string) => api.delete(`/tasks/${id}`),

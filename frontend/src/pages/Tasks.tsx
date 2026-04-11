@@ -1,29 +1,29 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { projectApi, taskApi, type Task, type TaskStatus } from "@/lib/api";
-import TaskCard from "@/components/TaskCard";
-import { Button } from "@/components/ui/button";
-import { 
-  Layout as LayoutIcon, 
-  Plus, 
-  Search, 
-  Filter, 
-  CheckCircle2, 
-  Clock, 
+import { projectApi, taskApi, type Task, type TaskStatus } from "../lib/api";
+import TaskCard from "../components/TaskCard";
+import { Button } from "../components/ui/button";
+import {
+  Layout as LayoutIcon,
+  Plus,
+  Search,
+  Filter,
+  CheckCircle2,
+  Clock,
   CircleDot,
   Loader2,
   ChevronDown,
   AlertCircle
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import CreateTaskModal from "@/components/CreateTaskModal";
+import { Input } from "../components/ui/input";
+import CreateTaskModal from "../components/CreateTaskModal";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 
 export default function Tasks() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   // Robustly sanitize projectId to avoid 400 errors from invalid UUID strings
   const sanitizeUUID = (uuid: string | null) => {
     if (!uuid) return null;
@@ -31,7 +31,7 @@ export default function Tasks() {
   };
 
   const urlProjectId = sanitizeUUID(searchParams.get("projectId"));
-  
+
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(urlProjectId);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -43,26 +43,36 @@ export default function Tasks() {
     }
   }, [urlProjectId]);
 
-  const { data: projects, isLoading: projectsLoading } = useQuery({
+  const { data: projectsPage, isLoading: projectsLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: () => projectApi.getAll(),
   });
+
+  const projects = projectsPage?.items;
 
   const { data: allTasks, isLoading: tasksLoading } = useQuery({
     queryKey: ["tasks"],
     queryFn: () => taskApi.getAll(),
   });
 
-  const { data: projectTasks, isLoading: projectTasksLoading } = useQuery({
+  const { data: projectPage, isLoading: projectTasksLoading } = useQuery({
     queryKey: ["tasks", selectedProjectId],
-    queryFn: () => selectedProjectId 
+    queryFn: () => selectedProjectId
       ? taskApi.getByProject(selectedProjectId)
-      : Promise.resolve([]),
+      : Promise.resolve({ items: [], total: 0, page: 1, limit: 100 }),
     enabled: !!selectedProjectId,
   });
 
+  const { data: projectStats, isLoading: statsLoading } = useQuery({
+    queryKey: ["stats", selectedProjectId],
+    queryFn: () => selectedProjectId ? projectApi.getStats(selectedProjectId) : null,
+    enabled: !!selectedProjectId,
+  });
+
+  const EMPTY_ARRAY = useMemo(() => [], []);
+
   // Decide which tasks to show
-  const displayTasks = selectedProjectId ? projectTasks || [] : allTasks || [];
+  const displayTasks = selectedProjectId ? projectPage?.items || EMPTY_ARRAY : allTasks || EMPTY_ARRAY;
 
   const [boardTasks, setBoardTasks] = useState<Task[]>([]);
 
@@ -74,14 +84,14 @@ export default function Tasks() {
   }, [displayTasks]);
 
   const filteredTasks = useMemo(() => {
-    return boardTasks.filter(task => 
+    return boardTasks.filter(task =>
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [boardTasks, searchTerm]);
 
   const mutation = useMutation({
-    mutationFn: ({ taskId, newStatus }: { taskId: string; newStatus: TaskStatus }) => 
+    mutationFn: ({ taskId, newStatus }: { taskId: string; newStatus: TaskStatus }) =>
       taskApi.update(taskId, { status: newStatus }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -104,8 +114,8 @@ export default function Tasks() {
     const newStatus = destination.droppableId as TaskStatus;
 
     // Optimistically update local state
-    setBoardTasks(prev => 
-      prev.map(task => 
+    setBoardTasks(prev =>
+      prev.map(task =>
         task.id === taskId ? { ...task, status: newStatus } : task
       )
     );
@@ -141,7 +151,7 @@ export default function Tasks() {
           <h1 className="text-4xl font-extrabold tracking-tight text-slate-50">Task Board</h1>
           <p className="text-slate-400 flex items-center gap-2 font-medium">
             <LayoutIcon className="h-5 w-5 text-primary" />
-            {selectedProjectId 
+            {selectedProjectId
               ? `Managing tasks for ${projects?.find(p => p.id === selectedProjectId)?.name}`
               : "Overview of all your tasks across projects"
             }
@@ -151,6 +161,39 @@ export default function Tasks() {
           {selectedProjectId && <CreateTaskModal projectId={selectedProjectId} />}
         </div>
       </div>
+
+      {/* Stats Section (Bonus) */}
+      {selectedProjectId && projectStats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-2">
+          {columns.map((col) => {
+            const count = projectStats.tasksByStatus[col.status.toUpperCase()] || 0;
+            return (
+              <div key={col.status} className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg bg-slate-800 ${col.color}`}>
+                    <col.icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{col.label}</p>
+                    <p className="text-xl font-black text-slate-100">{count}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-slate-800 text-primary">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total</p>
+                <p className="text-xl font-black text-slate-100">{projectPage?.total || 0}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters Section */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between px-2">
@@ -165,7 +208,7 @@ export default function Tasks() {
             />
           </div>
           <div className="relative min-w-[200px]">
-            <select 
+            <select
               className="w-full h-11 rounded-md border border-slate-800 bg-slate-900/50 text-slate-100 px-3 py-2 text-sm shadow-inner transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 appearance-none pr-10 backdrop-blur-sm hover:bg-slate-900"
               value={selectedProjectId || "all"}
               onChange={(e) => handleProjectChange(e.target.value)}
@@ -188,63 +231,62 @@ export default function Tasks() {
           <p className="text-slate-500 font-medium italic text-sm">Synchronizing your board...</p>
         </div>
       ) : (
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="grid gap-8 md:grid-cols-3">
-          {columns.map((column) => (
-            <div key={column.status} className="flex flex-col gap-6 h-full">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800 px-2">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${column.status === 'todo' ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' : column.status === 'in_progress' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]'}`} />
-                  <h3 className="font-bold text-slate-200 tracking-widest uppercase text-[11px]">{column.label}</h3>
-                  <span className="flex items-center justify-center px-1.5 h-4.5 rounded bg-slate-800 text-[10px] font-bold text-slate-400 border border-slate-700">
-                    {filteredTasks.filter((t) => t.status === column.status).length}
-                  </span>
-                </div>
-              </div>
-              
-              <Droppable droppableId={column.status}>
-                {(provided, snapshot) => (
-                  <div 
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className={`flex flex-1 flex-col gap-5 min-h-[500px] rounded-2xl p-4 border transition-colors duration-200 ${
-                      snapshot.isDraggingOver 
-                        ? 'bg-slate-800/40 border-primary/20 shadow-lg shadow-primary/5' 
-                        : 'bg-slate-900/30 border-slate-800/50 shadow-inner'
-                    } backdrop-blur-sm`}
-                  >
-                    {filteredTasks
-                      .filter((task) => task.status === column.status)
-                      .map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
-                          {(provided, snapshot) => (
-                            <TaskCard 
-                              task={task} 
-                              innerRef={provided.innerRef}
-                              draggableProps={provided.draggableProps}
-                              dragHandleProps={provided.dragHandleProps}
-                              isDragging={snapshot.isDragging}
-                            />
-                          )}
-                        </Draggable>
-                      ))}
-                    {provided.placeholder}
-                    
-                    {filteredTasks.filter((t) => t.status === column.status).length === 0 && (
-                      <div className="flex flex-1 flex-col items-center justify-center text-center opacity-40">
-                        <div className="h-12 w-12 rounded-full bg-slate-800 flex items-center justify-center mb-3">
-                          <column.icon className="h-5 w-5 text-slate-600" />
-                        </div>
-                        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">No tasks {column.label.toLowerCase()}</p>
-                      </div>
-                    )}
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="grid gap-8 md:grid-cols-3">
+            {columns.map((column) => (
+              <div key={column.status} className="flex flex-col gap-6 h-full">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800 px-2">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${column.status === 'todo' ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' : column.status === 'in_progress' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]'}`} />
+                    <h3 className="font-bold text-slate-200 tracking-widest uppercase text-[11px]">{column.label}</h3>
+                    <span className="flex items-center justify-center px-1.5 h-4.5 rounded bg-slate-800 text-[10px] font-bold text-slate-400 border border-slate-700">
+                      {filteredTasks.filter((t) => t.status === column.status).length}
+                    </span>
                   </div>
-                )}
-              </Droppable>
-            </div>
-          ))}
-        </div>
-      </DragDropContext>
+                </div>
+
+                <Droppable droppableId={column.status}>
+                  {(provided, snapshot) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className={`flex flex-1 flex-col gap-5 min-h-[500px] rounded-2xl p-4 border transition-colors duration-200 ${snapshot.isDraggingOver
+                          ? 'bg-slate-800/40 border-primary/20 shadow-lg shadow-primary/5'
+                          : 'bg-slate-900/30 border-slate-800/50 shadow-inner'
+                        } backdrop-blur-sm`}
+                    >
+                      {filteredTasks
+                        .filter((task) => task.status === column.status)
+                        .map((task, index) => (
+                          <Draggable key={task.id} draggableId={task.id} index={index}>
+                            {(provided, snapshot) => (
+                              <TaskCard
+                                task={task}
+                                innerRef={provided.innerRef}
+                                draggableProps={provided.draggableProps}
+                                dragHandleProps={provided.dragHandleProps}
+                                isDragging={snapshot.isDragging}
+                              />
+                            )}
+                          </Draggable>
+                        ))}
+                      {provided.placeholder}
+
+                      {filteredTasks.filter((t) => t.status === column.status).length === 0 && (
+                        <div className="flex flex-1 flex-col items-center justify-center text-center opacity-40">
+                          <div className="h-12 w-12 rounded-full bg-slate-800 flex items-center justify-center mb-3">
+                            <column.icon className="h-5 w-5 text-slate-600" />
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">No tasks {column.label.toLowerCase()}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            ))}
+          </div>
+        </DragDropContext>
       )}
     </div>
   );

@@ -1,18 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import { projectApi } from "@/lib/api";
-import ProjectCard from "@/components/ProjectCard";
-import CreateProjectModal from "@/components/CreateProjectModal";
+import { projectApi } from "../lib/api";
+import ProjectCard from "../components/ProjectCard";
+import CreateProjectModal from "../components/CreateProjectModal";
 import { Folder, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Input } from "../components/ui/input";
 import { useState } from "react";
 
 export default function Projects() {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: projects, isLoading } = useQuery({
+  const { data: projectsPage, isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: () => projectApi.getAll(),
   });
+
+  const projects = projectsPage?.items;
 
   const filteredProjects = projects?.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
